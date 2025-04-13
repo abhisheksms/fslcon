@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -73,10 +74,15 @@ public class GitService {
                 case ADD_TO_LIST -> {
                     Object existing = data.get(key);
                     if (existing instanceof List<?> list) {
-                        List<Object> updatedList = new ArrayList<>(list);
-                        updatedList.add("\"" + value.replace("\"", "") + "\"");
+                        List<String> updatedList = list.stream()
+                                .map(Object::toString)
+                                .map(v -> v.replace("\"", "")) // clean up existing values
+                                .collect(Collectors.toList());
+
+                        updatedList.add(value.replace("\"", "")); // avoid nested quotes
                         data.put(key, updatedList);
-                    } else {
+                    }
+                    else {
                         throw new RuntimeException("Key " + key + " is not a list.");
                     }
                 }
