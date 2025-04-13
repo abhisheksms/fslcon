@@ -14,9 +14,9 @@ public class PromptController {
     private GitService gitService;
 
     @PostMapping("/prompt")
-    public ResponseEntity<String> handlePrompt(@RequestBody String prompt) {
+    public ResponseEntity<String> handlePrompt(@RequestBody PromptRequest request) {
         try {
-            gitService.processPrompt(prompt);
+            gitService.processPrompt(request.getPrompt());
             return ResponseEntity.ok("PR created successfully!");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());

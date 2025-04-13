@@ -22,7 +22,13 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.InputStream;
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -48,28 +54,37 @@ public class GitService {
     }
 
     private void editYamlFile(String prompt) throws IOException {
-        // Simulate parsing prompt → key + value (you can later plug GPT here)
-        String key = "newKey";         // Extract from prompt
-        String newValue = "updatedValue"; // You can customize this
+        ParsedPrompt parsed = parsePrompt(prompt);
+        String key = parsed.key;
+        String value = parsed.value;
 
         Path yamlPath = Paths.get(repoPath, filePath);
         Yaml yaml = new Yaml();
 
-        // Load existing YAML
         try (InputStream in = Files.newInputStream(yamlPath)) {
             Map<String, Object> data = yaml.load(in);
 
-            // Update key if exists
-            if (data.containsKey(key)) {
-                data.put(key, newValue);
-            } else {
-                throw new RuntimeException("Key not found: " + key);
+            if (data == null || !data.containsKey(key)) {
+                throw new RuntimeException("Key not found in app.yml: " + key);
             }
 
-            // Write back updated YAML
+            switch (parsed.type) {
+                case UPDATE -> data.put(key, value);
+                case ADD_TO_LIST -> {
+                    Object existing = data.get(key);
+                    if (existing instanceof List<?> list) {
+                        List<Object> updatedList = new ArrayList<>(list);
+                        updatedList.add(value);
+                        data.put(key, updatedList);
+                    } else {
+                        throw new RuntimeException("Key " + key + " is not a list.");
+                    }
+                }
+            }
+
             DumperOptions options = new DumperOptions();
+            options.setDefaultFlowStyle(DumperOptions.FlowStyle.FLOW);
             options.setPrettyFlow(true);
-            options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
             yaml = new Yaml(options);
 
             try (Writer writer = Files.newBufferedWriter(yamlPath)) {
@@ -77,6 +92,7 @@ public class GitService {
             }
         }
     }
+
 
 
     private void commitAndPushChanges() throws Exception {
@@ -116,4 +132,47 @@ public class GitService {
 
         log.info("PR created successfully: {}", response.body());
     }
+
+    private ParsedPrompt parsePrompt(String prompt) {
+        // Match: update key to value
+        Pattern updatePattern = Pattern.compile("update\\s+(\\w+)\\s+to\\s+(.+)", Pattern.CASE_INSENSITIVE);
+
+        // Match: add value to key
+        Pattern addPattern = Pattern.compile("add\\s+(.+?)\\s+to\\s+(\\w+)", Pattern.CASE_INSENSITIVE);
+
+        Matcher updateMatcher = updatePattern.matcher(prompt);
+        Matcher addMatcher = addPattern.matcher(prompt);
+
+        if (updateMatcher.find()) {
+            return new ParsedPrompt(updateMatcher.group(1), updateMatcher.group(2), PromptType.UPDATE);
+        } else if (addMatcher.find()) {
+            return new ParsedPrompt(addMatcher.group(2), addMatcher.group(1), PromptType.ADD_TO_LIST);
+        }
+
+        throw new IllegalArgumentException("Invalid prompt format.");
+    }
+
+    private enum PromptType {
+        UPDATE,
+        ADD_TO_LIST
+    }
+
+    private static class ParsedPrompt {
+        String key;
+        String value;
+        PromptType type;
+
+        public ParsedPrompt(String key, String value, PromptType type) {
+            this.key = key;
+            this.value = value;
+            this.type = type;
+        }
+    }
+
 }
+
+
+/**
+ *  - update version to 2.0.1
+ *  - add value3 to releaseRefs
+ */
