@@ -3,7 +3,8 @@
   releaseRefs: [
     value1,
     value2,
-    qa
+    qa,
+    test-branch
   ]
   
 }
