@@ -22,11 +22,9 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.InputStream;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -45,10 +43,17 @@ public class GitService {
     private String repoName;
 
     private final String repoPath = "/Users/abhisheksms27/Desktop/study/fslcon"; // Adjust as needed
-    private final String branchName = "auto-pr-" + Instant.now().toEpochMilli();
-    private final String filePath = "src/main/resources/app.yml";
+    private String branchName = "auto-pr-" + Instant.now().toEpochMilli();
+    private String filePath = "src/main/resources/app.yml";
 
     public void processPrompt(String prompt) throws Exception {
+        String slug = prompt.replaceAll("[^a-zA-Z0-9]", "-").toLowerCase();
+        String branchName = "auto-pr-" + slug + "-" + System.currentTimeMillis();
+
+        // Set the branch name for the rest of the operations
+        this.branchName = branchName;
+
+
         editYamlFile(prompt);
         commitAndPushChanges();
         createPullRequest();
@@ -108,6 +113,7 @@ public class GitService {
         git.add().addFilepattern(".").call();
         git.commit().setMessage("Auto-edit YAML from prompt").call();
         git.push()
+                .setRemote("origin")
                 .setCredentialsProvider(new UsernamePasswordCredentialsProvider(username, token))
                 .call();
     }
