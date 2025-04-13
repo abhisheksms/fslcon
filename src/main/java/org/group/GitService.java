@@ -188,4 +188,6 @@ public class GitService {
 /**
  *  - update version to 2.0.1
  *  - add value3 to releaseRefs
+ *  - @prompt-pr-agent {"prompt": "add abcd to releaseRefs"}
+ *  - @prompt-pr-agent update version to 9.9.9
  */
