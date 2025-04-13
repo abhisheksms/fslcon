@@ -22,4 +22,9 @@ public class PromptController {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
+
+    @GetMapping("/callback")
+    public String dummyCallback() {
+        return "Callback received. You may close this tab.";
+    }
 }
