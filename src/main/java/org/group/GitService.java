@@ -74,7 +74,7 @@ public class GitService {
                     Object existing = data.get(key);
                     if (existing instanceof List<?> list) {
                         List<Object> updatedList = new ArrayList<>(list);
-                        updatedList.add(value);
+                        updatedList.add("\"" + value.replace("\"", "") + "\"");
                         data.put(key, updatedList);
                     } else {
                         throw new RuntimeException("Key " + key + " is not a list.");
