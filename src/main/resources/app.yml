@@ -1,9 +1,10 @@
 {
   version: 3.0.0,
   releaseRefs: [
-    value1,
-    value2,
-    qa
+    '"value1"',
+    '"value2"',
+    '"qa"',
+    '"test-branch"'
   ]
   
 }
