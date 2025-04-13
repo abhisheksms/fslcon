@@ -15,7 +15,14 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
+import java.time.Instant;
+
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
+
+import java.io.InputStream;
+import java.io.Writer;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -31,7 +38,7 @@ public class GitService {
     private String repoName;
 
     private final String repoPath = "/Users/abhisheksms27/Desktop/study/fslcon"; // Adjust as needed
-    private final String branchName = "auto-pr-branch";
+    private final String branchName = "auto-pr-" + Instant.now().toEpochMilli();
     private final String filePath = "src/main/resources/app.yml";
 
     public void processPrompt(String prompt) throws Exception {
@@ -41,12 +48,36 @@ public class GitService {
     }
 
     private void editYamlFile(String prompt) throws IOException {
+        // Simulate parsing prompt → key + value (you can later plug GPT here)
+        String key = "newKey";         // Extract from prompt
+        String newValue = "updatedValue"; // You can customize this
+
         Path yamlPath = Paths.get(repoPath, filePath);
-        List<String> lines = Files.readAllLines(yamlPath);
-        lines.add("# added by prompt: " + prompt);
-        lines.add("newKey: newValue");
-        Files.write(yamlPath, lines);
+        Yaml yaml = new Yaml();
+
+        // Load existing YAML
+        try (InputStream in = Files.newInputStream(yamlPath)) {
+            Map<String, Object> data = yaml.load(in);
+
+            // Update key if exists
+            if (data.containsKey(key)) {
+                data.put(key, newValue);
+            } else {
+                throw new RuntimeException("Key not found: " + key);
+            }
+
+            // Write back updated YAML
+            DumperOptions options = new DumperOptions();
+            options.setPrettyFlow(true);
+            options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+            yaml = new Yaml(options);
+
+            try (Writer writer = Files.newBufferedWriter(yamlPath)) {
+                yaml.dump(data, writer);
+            }
+        }
     }
+
 
     private void commitAndPushChanges() throws Exception {
         Git git = Git.open(new File(repoPath));
