@@ -48,15 +48,12 @@ public class GitService {
 
     public void processPrompt(String prompt) throws Exception {
         String slug = prompt.replaceAll("[^a-zA-Z0-9]", "-").toLowerCase();
-        String branchName = "auto-pr-" + slug + "-" + System.currentTimeMillis();
-
-        // Set the branch name for the rest of the operations
-        this.branchName = branchName;
+        this.branchName = "auto-pr/" + slug + "-" + System.currentTimeMillis();
 
 
         editYamlFile(prompt);
         commitAndPushChanges();
-        createPullRequest();
+        createPullRequest(prompt);
     }
 
     private void editYamlFile(String prompt) throws IOException {
@@ -81,10 +78,13 @@ public class GitService {
                     if (existing instanceof List<?> list) {
                         List<String> updatedList = list.stream()
                                 .map(Object::toString)
-                                .map(v -> v.replace("\"", "")) // clean up existing values
+                                .map(v -> "\"" + v.replace("\"", "") + "\"")  // forcibly wrap each with quotes
                                 .collect(Collectors.toList());
 
-                        updatedList.add(value.replace("\"", "")); // avoid nested quotes
+                        // Also quote the new value before adding
+                        updatedList.add("\"" + value.replace("\"", "") + "\"");
+
+                        // Set the updated list back
                         data.put(key, updatedList);
                     }
                     else {
@@ -118,15 +118,16 @@ public class GitService {
                 .call();
     }
 
-    private void createPullRequest() throws IOException, InterruptedException {
+    private void createPullRequest(String prompt) throws IOException, InterruptedException {
+        String prTitle = "Auto PR: " + prompt;
         String json = """
             {
-              "title": "Auto PR from prompt",
+              "title": "%s",
               "head": "%s",
               "base": "main",
-              "body": "This PR was generated from a prompt."
+              "body": "This PR was generated from the prompt: '%s'."
             }
-        """.formatted(branchName);
+            """.formatted(prTitle, branchName, prompt);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.github.com/repos/" + username + "/" + repoName + "/pulls"))
