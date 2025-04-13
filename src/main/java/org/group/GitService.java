@@ -78,13 +78,13 @@ public class GitService {
                     if (existing instanceof List<?> list) {
                         List<String> updatedList = list.stream()
                                 .map(Object::toString)
-                                .map(v -> "\"" + v.replace("\"", "") + "\"")  // forcibly wrap each with quotes
+                                .map(v -> v.replace("\"", ""))  // remove inner quotes
                                 .collect(Collectors.toList());
 
-                        // Also quote the new value before adding
-                        updatedList.add("\"" + value.replace("\"", "") + "\"");
+                        if (!updatedList.contains(value)) {
+                            updatedList.add(value.replace("\"", ""));  // plain value, SnakeYAML will quote it correctly
+                        }
 
-                        // Set the updated list back
                         data.put(key, updatedList);
                     }
                     else {
