@@ -185,7 +185,3 @@ public class GitService {
 }
 
 
-/**
- *  - update version to 2.0.1
- *  - add value3 to releaseRefs
- */
